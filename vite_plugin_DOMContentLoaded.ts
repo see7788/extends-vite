@@ -1,4 +1,4 @@
-import { Plugin } from "vite"
+import type { Plugin } from "vite"
 /**rollupOptions.output.inlineDynamicImports=true适用 */
 export default (): Plugin => {
     const name = 'vite_public_electronpreloadold'

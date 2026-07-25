@@ -1,4 +1,4 @@
-import { type PluginOption, } from "vite"
+import type { PluginOption } from "vite"
 import { existsSync, mkdirSync } from 'fs';
 import { copyFile } from 'fs/promises';
 import path from 'path';
