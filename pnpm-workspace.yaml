@@ -1,0 +1,4 @@
+packages:
+  - "."
+  - "../extends-ssh"
+  - "../extends-zustand"
