@@ -6,7 +6,6 @@
     "./*": "./*.ts"
   },
   "dependencies": {
-    "extends-ssh": "workspace:*",
     "lodash": "^4.17.21"
   },
   "peerDependencies": {
