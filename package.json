@@ -5,12 +5,10 @@
   "exports": {
     "./*": "./*.ts"
   },
-  "dependencies": {
-    "lodash": "^4.17.21"
-  },
   "peerDependencies": {
     "@hono/node-server": "^1.19.11",
     "hono": "^4.12.18",
+    "lodash": "^4.17.21",
     "vite": "^6.3.6 || ^7.0.0 || ^8.0.0"
   },
   "devDependencies": {
@@ -18,6 +16,7 @@
     "@types/lodash": "4.17.0",
     "@types/node": "^20.19.40",
     "hono": "^4.12.18",
+    "lodash": "^4.17.21",
     "typescript": "5.9.3",
     "vite": "^8.0.11"
   }

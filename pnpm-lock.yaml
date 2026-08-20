@@ -7,10 +7,6 @@ settings:
 importers:
 
   .:
-    dependencies:
-      lodash:
-        specifier: ^4.17.21
-        version: 4.18.1
     devDependencies:
       '@hono/node-server':
         specifier: ^1.19.11
@@ -24,6 +20,9 @@ importers:
       hono:
         specifier: ^4.12.18
         version: 4.12.32
+      lodash:
+        specifier: ^4.17.21
+        version: 4.18.1
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -31,11 +30,11 @@ importers:
         specifier: ^8.0.11
         version: 8.1.5(@types/node@20.19.43)
 
-  ../extends-zustand:
+  ../extends-zustand/libs/zustand-lib:
     devDependencies:
       '@types/node':
-        specifier: ^20.19.40
-        version: 20.19.43
+        specifier: 20.19.40
+        version: 20.19.40
       immer:
         specifier: 10.2.0
         version: 10.2.0
@@ -175,6 +174,9 @@ packages:
 
   '@types/lodash@4.17.0':
     resolution: {integrity: sha512-t7dhREVv6dbNj0q17X12j7yDG4bD/DHYX7o5/DbDxobP0HnGPgpRz2Ej77aL7TZT3DSw13fqUTj8J4mMnqa7WA==}
+
+  '@types/node@20.19.40':
+    resolution: {integrity: sha512-xxx6M2IpSTnnKcR0cMvIiohkiCx20/oRPtWGbenFygKCGl3zqUzdNjQ/1V4solq1LU+dgv0nQzeGOuqkqZGg0Q==}
 
   '@types/node@20.19.43':
     resolution: {integrity: sha512-6oYBAi5ikg4Pl+kGsoYtawUMBT2zZMCvPNF7pVLnHZfd1zf38DRiWn/gT01RYCdUqkv7Fhr+C9ot4/tb+2sVvA==}
@@ -470,6 +472,10 @@ snapshots:
     optional: true
 
   '@types/lodash@4.17.0': {}
+
+  '@types/node@20.19.40':
+    dependencies:
+      undici-types: 6.21.0
 
   '@types/node@20.19.43':
     dependencies:
