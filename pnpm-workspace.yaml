@@ -1,3 +1,4 @@
 packages:
   - "."
+  - "libs/*"
   - "../extends-zustand/libs/zustand-lib"
