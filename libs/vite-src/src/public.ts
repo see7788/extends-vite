@@ -7,6 +7,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname, extname, isAbsolute, relative, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { createLogUpdate } from "log-update";
 import {
   normalizePath,
@@ -16,6 +17,14 @@ import {
 } from "vite";
 
 export type JsonObject = Record<string, unknown>;
+
+export type JsonValue =
+  | null
+  | boolean
+  | number
+  | string
+  | readonly JsonValue[]
+  | { readonly [key: string]: JsonValue };
 
 export type RevisionMessage<Entry extends string> = {
   scope: string;
@@ -129,6 +138,23 @@ export const absoluteFileRead = (value: string, fileName: string, label: string)
   return fileAssert(path, label);
 };
 
+export const viteImportId = (file: string, command: "serve" | "build"): string => {
+  const absolute = resolve(file);
+  return command === "serve"
+    ? `/@fs/${normalizePath(absolute)}`
+    : pathToFileURL(absolute).href;
+};
+
+export const viteHtmlEntryUrl = (
+  htmlFile: string,
+  entryFile: string,
+  command: "serve" | "build",
+): string => {
+  if (command === "serve") return viteImportId(entryFile, "serve");
+  const relativeEntry = normalizePath(relative(dirname(resolve(htmlFile)), resolve(entryFile)));
+  return relativeEntry.startsWith(".") ? relativeEntry : `./${relativeEntry}`;
+};
+
 // Runtime-specific packages supply their own default icon path.
 // Common Vite helpers shared by runtime-specific plugin packages.
 export const iconPathRead = (
@@ -233,6 +259,67 @@ export const devOriginRead = (server: ViteDevServer, plugin: string): string => 
 export const devFileUrl = (file: string, timestamp: number): string => {
   const path = encodeURI(normalizePath(file)).replace(/#/gu, "%23").replace(/\?/gu, "%3F");
   return `/@fs/${path}?t=${timestamp}`;
+};
+
+export type ViteHtmlProject = {
+  readonly name: string;
+  readonly html: string;
+};
+
+type ViteHtmlRequest = {
+  readonly method?: string;
+  readonly url?: string;
+  readonly headers: { readonly accept?: string };
+};
+
+type ViteHtmlResponse = {
+  statusCode: number;
+  setHeader(name: string, value: string): void;
+  end(body?: string): void;
+};
+
+type ViteHtmlServer = {
+  middlewares: {
+    use(handler: (
+      request: ViteHtmlRequest,
+      response: ViteHtmlResponse,
+      next: (error?: unknown) => void,
+    ) => unknown): unknown;
+  };
+  transformIndexHtml(url: string, html: string): Promise<string>;
+};
+
+export const viteHtmlMiddleware = (
+  server: ViteHtmlServer,
+  projects: readonly ViteHtmlProject[],
+  origin: string,
+): void => {
+  server.middlewares.use(async (request, response, next) => {
+    try {
+      if (request.method !== "GET" || !request.url) return next();
+      const url = new URL(request.url, origin);
+      const project = projects.find(({ name }) => (
+        url.pathname === `/${name}` || url.pathname.startsWith(`/${name}/`)
+      ));
+      if (!project) return next();
+      if (url.pathname === `/${project.name}`) {
+        response.statusCode = 307;
+        response.setHeader("Location", `/${project.name}/${url.search}`);
+        response.end();
+        return;
+      }
+      if (!request.headers.accept?.includes("text/html")) return next();
+      const html = await server.transformIndexHtml(
+        url.pathname,
+        readFileSync(project.html, "utf8"),
+      );
+      response.statusCode = 200;
+      response.setHeader("Content-Type", "text/html; charset=utf-8");
+      response.end(html);
+    } catch (error) {
+      next(error);
+    }
+  });
 };
 
 export const originListRead = (values: readonly string[] | undefined, label: string): string[] => [
