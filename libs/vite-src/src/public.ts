@@ -1,4 +1,4 @@
-import {
+﻿import {
   existsSync,
   mkdirSync,
   readFileSync,
@@ -11,10 +11,16 @@ import { pathToFileURL } from "node:url";
 import { createLogUpdate } from "log-update";
 import {
   normalizePath,
-  type Logger,
-  type ModuleNode,
-  type ViteDevServer,
 } from "vite";
+
+type ViteModuleNodeLike = { readonly file: string | null; readonly importers: ReadonlySet<ViteModuleNodeLike> };
+type ViteServerLike = {
+  readonly resolvedUrls?: { readonly local: readonly string[] | undefined } | null;
+  readonly httpServer?: { readonly address: () => string | { readonly port: number } | null; readonly once: (event: string, callback: () => void) => unknown } | null;
+  readonly moduleGraph: unknown;
+  readonly ws: { readonly send: (event: string, payload: unknown) => unknown; readonly on: (event: string, callback: (message: unknown) => void) => unknown };
+};
+type ViteLoggerLike = { readonly info: (message: string) => unknown; readonly warn: (message: string) => unknown };
 
 export type JsonObject = Record<string, unknown>;
 
@@ -226,9 +232,9 @@ export const directoryCopy = (source: string, target: string): void => {
   }
 };
 
-export const modulesReachFile = (modules: readonly ModuleNode[], file: string): boolean => {
+export const modulesReachFile = (modules: readonly ViteModuleNodeLike[], file: string): boolean => {
   const pending = [...modules];
-  const visited = new Set<ModuleNode>();
+  const visited = new Set<ViteModuleNodeLike>();
   while (pending.length) {
     const module = pending.pop();
     if (!module || visited.has(module)) continue;
@@ -240,16 +246,16 @@ export const modulesReachFile = (modules: readonly ModuleNode[], file: string): 
 };
 
 export const modulesInvalidate = (
-  server: ViteDevServer,
-  modules: readonly ModuleNode[],
+  server: ViteServerLike,
+  modules: readonly ViteModuleNodeLike[],
   timestamp: number,
 ): void => {
-  const invalidated = new Set<ModuleNode>();
-  for (const module of modules) server.moduleGraph.invalidateModule(module, invalidated, timestamp, true);
+  const invalidated = new Set<ViteModuleNodeLike>();
+  for (const module of modules) (server.moduleGraph as { invalidateModule: (module: ViteModuleNodeLike, invalidated: Set<ViteModuleNodeLike>, timestamp: number, hmr: boolean) => void }).invalidateModule(module, invalidated, timestamp, true);
 };
 
-export const devOriginRead = (server: ViteDevServer, plugin: string): string => {
-  const local = server.resolvedUrls?.local[0];
+export const devOriginRead = (server: ViteServerLike, plugin: string): string => {
+  const local = server.resolvedUrls?.local?.[0];
   if (local) return new URL(local).origin;
   const address = server.httpServer?.address();
   if (address && typeof address === "object") return `http://127.0.0.1:${address.port}`;
@@ -347,8 +353,8 @@ export class RuntimeStatus<Entry extends string> {
   readonly running = new Map<Entry, Map<string, { message: RevisionMessage<Entry>; seenAt: number }>>();
   readonly #renderInPlace = createLogUpdate(process.stdout, { showCursor: true });
   #lastSnapshot = "";
-  #logger: Logger | undefined;
-  #server: ViteDevServer | undefined;
+  #logger: ViteLoggerLike | undefined;
+  #server: ViteServerLike | undefined;
   #scope = "";
   #expiryTimer: ReturnType<typeof setInterval> | undefined;
 
@@ -361,11 +367,11 @@ export class RuntimeStatus<Entry extends string> {
     }
   }
 
-  activate(server: ViteDevServer, logger: Logger, scope: string): void {
+  activate(server: ViteServerLike, logger: ViteLoggerLike, scope: string): void {
     this.#server = server;
     this.#logger = logger;
     this.#scope = scope;
-    server.ws.on(`${this.plugin}:ack`, (message: RevisionMessage<Entry>) => this.acknowledge(message));
+    server.ws.on(`${this.plugin}:ack`, (message: unknown) => this.acknowledge(message as RevisionMessage<Entry>));
     if (this.#expiryTimer) clearInterval(this.#expiryTimer);
     this.#expiryTimer = setInterval(() => this.render(), 2000);
     server.httpServer?.once("close", () => {
